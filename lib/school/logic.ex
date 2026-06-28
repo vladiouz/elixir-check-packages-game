@@ -36,22 +36,13 @@ defmodule School.Logic do
     }
   end
 
-  def validate(package, rules_to_apply) do
-    [
-      rule1: &validate_rule1/1,
-      rule2: &validate_rule2/1,
-      rule3: &validate_rule3/1,
-      rule4: &validate_rule4/1,
-      rule5: &validate_rule5/1,
-      rule6: &validate_rule6/1,
-      rule7: &validate_rule7/1,
-      rule8: &validate_rule8/1,
-      rule9: &validate_rule9/1,
-      rule10: &validate_rule10/1
-    ]
-    |> Enum.filter(fn {rule, _} -> rule in rules_to_apply end)
+  def validate(package, rules_to_apply, reversed_rules \\ false) do
+    rules_to_apply
+    |> Enum.map(&{&1, rule_validator(&1)})
     |> Enum.reduce_while({:valid, "success"}, fn {_rule, func}, acc ->
       case func.(package) do
+        {:valid, msg} when reversed_rules -> {:halt, {:invalid, msg}}
+        {:invalid, _msg} when reversed_rules -> {:cont, acc}
         {:valid, _} -> {:cont, acc}
         {:invalid, msg} -> {:halt, {:invalid, msg}}
       end
@@ -170,6 +161,17 @@ defmodule School.Logic do
 
   defp calculate_weight(:letter), do: Enum.random(1..600)
   defp calculate_weight(_), do: Enum.random(1..10000)
+
+  defp rule_validator(:rule1), do: &validate_rule1/1
+  defp rule_validator(:rule2), do: &validate_rule2/1
+  defp rule_validator(:rule3), do: &validate_rule3/1
+  defp rule_validator(:rule4), do: &validate_rule4/1
+  defp rule_validator(:rule5), do: &validate_rule5/1
+  defp rule_validator(:rule6), do: &validate_rule6/1
+  defp rule_validator(:rule7), do: &validate_rule7/1
+  defp rule_validator(:rule8), do: &validate_rule8/1
+  defp rule_validator(:rule9), do: &validate_rule9/1
+  defp rule_validator(:rule10), do: &validate_rule10/1
 
   defp value_range do
     10..4000

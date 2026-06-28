@@ -22,7 +22,8 @@ defmodule School.State do
   defstruct active_rules: [],
             players: [],
             current_game_time: 0,
-            boss_pid: nil
+            boss_pid: nil,
+            reversed_rules: false
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %__MODULE__{}, name: __MODULE__)
@@ -49,12 +50,20 @@ defmodule School.State do
     GenServer.call(__MODULE__, :get_active_rules)
   end
 
+  def get_reversed_rules do
+    GenServer.call(__MODULE__, :get_reversed_rules)
+  end
+
   def update_player_score(pid, package, expected) do
     GenServer.call(__MODULE__, {:update_player_score, pid, package, expected})
   end
 
   def change_active_rules(pid) do
     GenServer.call(__MODULE__, {:change_active_rules, pid})
+  end
+
+  def toggle_reversed_rules(pid) do
+    GenServer.call(__MODULE__, {:toggle_reversed_rules, pid})
   end
 
   @impl true
@@ -100,8 +109,29 @@ defmodule School.State do
   end
 
   @impl true
+  def handle_call({:toggle_reversed_rules, pid}, _from, state) do
+    cond do
+      state.game_state != :in_progress ->
+        {:reply, {:error, :game_not_in_progress}, state}
+
+      state.boss_pid != pid ->
+        {:reply, {:error, :not_boss}, state}
+
+      true ->
+        new_state = Map.put(state, :reversed_rules, !state.reversed_rules)
+        Phoenix.PubSub.broadcast(School.PubSub, "game_room", :update_rules)
+        {:reply, {:ok, new_state.reversed_rules}, new_state}
+    end
+  end
+
+  @impl true
   def handle_call(:get_active_rules, _from, state) do
     {:reply, state.active_rules, state}
+  end
+
+  @impl true
+  def handle_call(:get_reversed_rules, _from, state) do
+    {:reply, state.reversed_rules, state}
   end
 
   @impl true
@@ -110,7 +140,7 @@ defmodule School.State do
       Enum.split_with(state.players, fn player -> player.pid == pid end)
 
     {validation_result, validation_msg} =
-      Logic.validate(package, state.active_rules)
+      Logic.validate(package, state.active_rules, state.reversed_rules)
 
     decision =
       if validation_result == expected,

@@ -41,6 +41,7 @@ defmodule SchoolWeb.GameComponents do
   attr :timestamp, :integer, required: true
   attr :validation_result, :atom, required: true
   attr :show_boss_action, :boolean, default: false
+  attr :show_reverse_action, :boolean, default: false
 
   def package_inspection_form(assigns) do
     ~H"""
@@ -125,6 +126,9 @@ defmodule SchoolWeb.GameComponents do
           <button phx-click="boss_change_rules" class="btn btn-approve">
             <span class="btn-icon">♟</span> Change Rules
           </button>
+          <button phx-click="boss_toggle_rules" class="btn btn-approve">
+            <span class="btn-icon">⇄</span> Reverse Rules
+          </button>
         </div>
       </div>
     </div>
@@ -177,18 +181,22 @@ defmodule SchoolWeb.GameComponents do
   end
 
   attr :rule_descriptions, :list, required: true
+  attr :reversed_rules, :boolean, default: false
 
   def postal_regulations(assigns) do
     ~H"""
     <div class="rules-reference">
       <div class="rules-header">
         <span class="rules-title">Postal Regulations</span>
+        <span :if={@reversed_rules} class="rules-title">All rules reversed</span>
       </div>
 
       <%= for {desc, index} <- Enum.with_index(@rule_descriptions) do %>
         <div class="rules-list">
           <div class="rule-item">
-            <span class="rule-number">{index + 1}</span><span>{desc}</span>
+            <span class="rule-number">{index + 1}</span>
+            <strong :if={@reversed_rules}>{desc}</strong>
+            <span :if={!@reversed_rules}>{desc}</span>
           </div>
         </div>
       <% end %>

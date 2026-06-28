@@ -28,6 +28,7 @@ defmodule SchoolWeb.MainLive do
       |> assign(:player_list, [])
       |> assign(:is_boss, false)
       |> assign(:boss_name, nil)
+      |> assign(:reversed_rules, false)
 
     {:ok, new_socket}
   end
@@ -89,6 +90,17 @@ defmodule SchoolWeb.MainLive do
   end
 
   @impl true
+  def handle_event("boss_toggle_rules", _params, socket) do
+    case State.toggle_reversed_rules(self()) do
+      {:ok, reversed_rules} ->
+        {:noreply, assign(socket, :reversed_rules, reversed_rules)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info(:next_package, socket) do
     package = Logic.generate_package()
 
@@ -133,11 +145,13 @@ defmodule SchoolWeb.MainLive do
   def handle_info(:update_rules, socket) do
     active_rules = State.get_active_rules()
     rule_descriptions = Logic.descriptions_by_rules(active_rules)
+    reversed_rules = State.get_reversed_rules()
 
     new_socket =
       socket
       |> assign(:rule_descriptions, rule_descriptions)
       |> assign(:active_rules, active_rules)
+      |> assign(:reversed_rules, reversed_rules)
 
     {:noreply, new_socket}
   end
