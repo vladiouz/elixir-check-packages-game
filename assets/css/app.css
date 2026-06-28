@@ -127,7 +127,7 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; }
+    html, body { min-height: 100%; height: auto; }
 
     body {
       font-family: 'Instrument Sans', sans-serif;
@@ -138,7 +138,9 @@
       color: var(--ink);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      min-height: 100vh;
     }
 
     /* ===== TOP BAR ===== */
@@ -193,13 +195,14 @@
       display: grid;
       grid-template-columns: 1fr 240px 260px;
       gap: 20px;
-      flex: 1;
-      min-height: 0;
+      flex: 1 0 auto;
+      min-height: calc(100vh - 72px);
       padding: 16px 28px;
       max-width: 1360px;
       margin: 0 auto;
       width: 100%;
       align-items: start;
+      overflow: visible;
     }
 
     /* ===== COLUMN 1: INSPECTION AREA ===== */
