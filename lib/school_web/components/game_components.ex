@@ -48,14 +48,14 @@ defmodule SchoolWeb.GameComponents do
     <div class="card-reveal-wrapper">
       <%= case @validation_result do %>
         <% :correct -> %>
-          <div class="stamp-result" id={"card-#{@timestamp}"}>
+          <div :if={not @show_boss_action} class="stamp-result" id={"card-#{@timestamp}"}>
             <div class="stamp-mark approved">
               <span class="stamp-label">Approved</span>
               <span class="stamp-points">+1</span>
             </div>
           </div>
         <% :incorrect -> %>
-          <div class="stamp-result" id={"card-#{@timestamp}"}>
+          <div :if={not @show_boss_action} class="stamp-result" id={"card-#{@timestamp}"}>
             <div class="stamp-mark rejected">
               <span class="stamp-label">Rejected</span>
               <span class="stamp-points">−1</span>
@@ -66,7 +66,7 @@ defmodule SchoolWeb.GameComponents do
       <% end %>
 
       <div class="package-card">
-        <div class="card-header">
+        <div :if={not @show_boss_action} class="card-header">
           <div class="card-title-group">
             <div class="card-title">Package Inspection Form</div>
             <div class="card-id">PKG-{@timestamp}</div>
@@ -78,7 +78,7 @@ defmodule SchoolWeb.GameComponents do
           </div>
         </div>
 
-        <div class="package-fields">
+        <div :if={not @show_boss_action} class="package-fields">
           <div class="field">
             <div class="field-label">Package Type</div>
             <div class="field-value type-badge">{capitalise(@package.type)}</div>
@@ -101,7 +101,7 @@ defmodule SchoolWeb.GameComponents do
           </div>
         </div>
 
-        <div class="package-checks">
+        <div :if={not @show_boss_action} class="package-checks">
           <span :if={@package.has_customs_form} class="check-tag has">
             <span class="check-dot"></span> Customs Form
           </span>
@@ -113,7 +113,7 @@ defmodule SchoolWeb.GameComponents do
           </span>
         </div>
 
-        <div class="card-actions">
+        <div :if={not @show_boss_action} class="card-actions">
           <button phx-click="decline" class="btn btn-decline">
             <span class="btn-icon">✕</span> Decline
           </button>
