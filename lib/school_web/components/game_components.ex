@@ -2,8 +2,8 @@ defmodule SchoolWeb.GameComponents do
   use Phoenix.Component
 
   attr :player_name, :string, required: true
-  attr :score, :integer, required: true
-  attr :is_boss, :boolean, default: false
+  attr :score, :float, required: true
+  attr :win_bonus_multiplier, :float, default: 1.0
 
   def score_banner(assigns) do
     ~H"""
@@ -13,13 +13,17 @@ defmodule SchoolWeb.GameComponents do
         <div>
           <div class="player-name">Inspector {@player_name}</div>
           <div class="player-role">Senior Postal Officer</div>
-          <div :if={@is_boss} class="player-role">Boss Inspector</div>
         </div>
       </div>
       <div class="score-display">
         <span class="score-label">Score</span>
-        <span class="score-value">{@score}</span>
+        <span class="score-value">{format_score(@score)}</span>
         <span class="score-unit">pts</span>
+      </div>
+      <div class="score-display">
+        <span class="score-label">Bonus</span>
+        <span class="score-value">{Float.round((@win_bonus_multiplier - 1.0) * 100, 0) |> trunc()}</span>
+        <span class="score-unit">%</span>
       </div>
     </div>
     """
@@ -42,6 +46,7 @@ defmodule SchoolWeb.GameComponents do
   attr :validation_result, :atom, required: true
   attr :show_boss_action, :boolean, default: false
   attr :show_reverse_action, :boolean, default: false
+  attr :show_player_bonus_action, :boolean, default: false
 
   def package_inspection_form(assigns) do
     ~H"""
@@ -123,6 +128,39 @@ defmodule SchoolWeb.GameComponents do
         </div>
 
         <div :if={@show_boss_action} class="card-actions">
+          <button phx-click="boss_change_rules" class="btn btn-approve">
+            <span class="btn-icon">♟</span> Change Rules
+          </button>
+          <button phx-click="boss_toggle_rules" class="btn btn-approve">
+            <span class="btn-icon">⇄</span> Reverse Rules
+          </button>
+          <button phx-click="boss_double_points" class="btn btn-approve">
+            <span class="btn-icon">×2</span> Double Stakes
+          </button>
+        </div>
+
+        <div :if={@show_player_bonus_action} class="card-actions">
+          <button phx-click="buy_win_bonus" class="btn btn-approve">
+            <span class="btn-icon">+25%</span> Buy Win Bonus
+          </button>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  def boss_control_panel(assigns) do
+    ~H"""
+    <div class="card-reveal-wrapper">
+      <div class="package-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <div class="card-title">Boss Controls</div>
+            <div class="card-id">COMMAND PANEL</div>
+          </div>
+        </div>
+
+        <div class="card-actions">
           <button phx-click="boss_change_rules" class="btn btn-approve">
             <span class="btn-icon">♟</span> Change Rules
           </button>
@@ -258,4 +296,7 @@ defmodule SchoolWeb.GameComponents do
   def get_medal(place) do
     Enum.at(["🥇", "🥈", "🥉"], place)
   end
+
+  defp format_score(score) when is_integer(score), do: score
+  defp format_score(score) when is_float(score), do: Float.round(score, 1)
 end

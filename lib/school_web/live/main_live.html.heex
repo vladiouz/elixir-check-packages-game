@@ -12,16 +12,26 @@
   <!-- COLUMN 1: CARD -->
   <%= if @local_player && @game_state == :in_progress do %>
     <section class="inspection-area">
-      <.score_banner player_name={@local_player.name} score={@score} is_boss={@local_player.boss?} />
+      <%= if @local_player.boss? do %>
+        <.match_time_remaining />
 
-      <.match_time_remaining />
+        <.boss_control_panel is_boss={true} />
+      <% else %>
+        <.score_banner
+          player_name={@local_player.name}
+          score={@score}
+          win_bonus_multiplier={@local_player.win_bonus_multiplier}
+        />
 
-      <.package_inspection_form
-        package={@package}
-        timestamp={@timestamp}
-        validation_result={@validation_result}
-        show_boss_action={@local_player.boss?}
-      />
+        <.match_time_remaining />
+
+        <.package_inspection_form
+          package={@package}
+          timestamp={@timestamp}
+          validation_result={@validation_result}
+          show_player_bonus_action={true}
+        />
+      <% end %>
     </section>
   <% else %>
     <.ready_section local_player={@local_player} />

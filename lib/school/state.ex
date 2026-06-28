@@ -75,6 +75,10 @@ defmodule School.State do
     GenServer.call(__MODULE__, {:activate_double_points, pid})
   end
 
+  def buy_win_bonus(pid) do
+    GenServer.call(__MODULE__, {:buy_win_bonus, pid})
+  end
+
   @impl true
   def handle_call({:player_ready, name}, _from, state) do
     {[player], remaining_players} =
@@ -154,7 +158,41 @@ defmodule School.State do
 
         Process.send_after(self(), :clear_double_points, 30_000)
 
-        {:reply, {:ok, expires_at}, new_state}
+      {:reply, {:ok, expires_at}, new_state}
+    end
+  end
+
+  @impl true
+  def handle_call({:buy_win_bonus, pid}, _from, state) do
+    cond do
+      state.game_state != :in_progress ->
+        {:reply, {:error, :game_not_in_progress}, state}
+
+      state.boss_pid == pid ->
+        {:reply, {:error, :boss_cannot_buy}, state}
+
+      true ->
+        {[player], remaining_players} =
+          Enum.split_with(state.players, fn player -> player.pid == pid end)
+
+        if player.score < 5 do
+          {:reply, {:error, :not_enough_points}, state}
+        else
+          updated_player =
+            player
+            |> Map.put(:score, player.score - 5)
+            |> Map.put(:win_bonus_multiplier, 1.25)
+
+          updated_players = [updated_player | remaining_players]
+
+          Phoenix.PubSub.broadcast(
+            School.PubSub,
+            "game_room",
+            {:update_player_list, sort_by_score(updated_players)}
+          )
+
+          {:reply, {:ok, updated_player}, Map.put(state, :players, updated_players)}
+        end
     end
   end
 
@@ -188,7 +226,7 @@ defmodule School.State do
 
     score_delta =
       if decision == :correct,
-        do: current_score_delta(state),
+        do: current_score_delta(state) * player.win_bonus_multiplier,
         else: -current_score_delta(state)
 
     new_score = max(player.score + score_delta, 0)
@@ -387,4 +425,5 @@ defmodule School.State do
   defp current_score_delta(state) do
     if state.double_points_until, do: 2, else: 1
   end
+
 end

@@ -114,6 +114,29 @@ defmodule SchoolWeb.MainLive do
   end
 
   @impl true
+  def handle_event("buy_win_bonus", _params, socket) do
+    case State.buy_win_bonus(self()) do
+      {:ok, updated_player} ->
+        updated_local_player =
+          if socket.assigns.local_player do
+            socket.assigns.local_player
+            |> Map.put(:score, updated_player.score)
+            |> Map.put(:win_bonus_multiplier, updated_player.win_bonus_multiplier)
+          else
+            updated_player
+          end
+
+        {:noreply,
+         socket
+         |> assign(:local_player, updated_local_player)
+         |> assign(:score, updated_player.score)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info(:next_package, socket) do
     package = Logic.generate_package()
 
