@@ -234,6 +234,10 @@
     /* -- Card Timer -- */
 
     .card-timer-section { display: flex; align-items: center; gap: 10px; padding: 0 2px; }
+    .card-timer-section.danger .card-timer-label,
+    .card-timer-section.danger .card-timer-seconds {
+      color: var(--stamp-red-light);
+    }
 
     .card-timer-label {
       font-size: 10px; color: var(--manila);
@@ -252,6 +256,11 @@
       background: linear-gradient(90deg, var(--stamp-green), var(--stamp-green-light));
       border-radius: 3px;
       transition: width 1s linear;
+    }
+
+    .card-timer-section.danger .card-timer-fill {
+      background: linear-gradient(90deg, var(--stamp-red), var(--stamp-red-light));
+      box-shadow: 0 0 12px rgba(231, 76, 60, 0.55);
     }
 
     .card-timer-fill.warning { width: 30%; background: linear-gradient(90deg, #e67e22, #f39c12); }
@@ -754,4 +763,3 @@
   opacity: 0.4;
   pointer-events: none;
 }
-

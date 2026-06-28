@@ -129,6 +129,9 @@ defmodule SchoolWeb.GameComponents do
           <button phx-click="boss_toggle_rules" class="btn btn-approve">
             <span class="btn-icon">⇄</span> Reverse Rules
           </button>
+          <button phx-click="boss_double_points" class="btn btn-approve">
+            <span class="btn-icon">×2</span> Double Stakes
+          </button>
         </div>
       </div>
     </div>

@@ -54,9 +54,11 @@
       window.addEventListener("phx:timer-tick", (e) => {
         const fill = document.querySelector('.card-timer-fill');
         const seconds = document.querySelector('.card-timer-seconds');
+        const timerSection = document.querySelector('.card-timer-section');
 
         if (fill) fill.style.width = e.detail.width + "%";
         if (seconds) seconds.textContent = e.detail.time + "s";
+        if (timerSection) timerSection.classList.toggle('danger', !!e.detail.red);
       });
 
       window.addEventListener("phx:swipe-right", (e) => {

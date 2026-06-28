@@ -22,6 +22,7 @@ defmodule SchoolWeb.MainLive do
       |> assign(:timestamp, nil)
       |> assign(:validation_result, :correct)
       |> assign(:game_state, :waiting)
+      |> assign(:current_game_time, 0)
       |> assign(:active_rules, active_rules)
       |> assign(:rule_descriptions, rule_descriptions)
       |> assign(:score, 0)
@@ -29,6 +30,7 @@ defmodule SchoolWeb.MainLive do
       |> assign(:is_boss, false)
       |> assign(:boss_name, nil)
       |> assign(:reversed_rules, false)
+      |> assign(:double_points_active, false)
 
     {:ok, new_socket}
   end
@@ -101,6 +103,17 @@ defmodule SchoolWeb.MainLive do
   end
 
   @impl true
+  def handle_event("boss_double_points", _params, socket) do
+    case State.activate_double_points(self()) do
+      {:ok, _expires_at} ->
+        {:noreply, assign(socket, :double_points_active, true)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
   def handle_info(:next_package, socket) do
     package = Logic.generate_package()
 
@@ -136,7 +149,12 @@ defmodule SchoolWeb.MainLive do
 
     new_socket =
       socket
-      |> push_event("timer-tick", %{time: current_game_time, width: width})
+      |> assign(:current_game_time, current_game_time)
+      |> push_event("timer-tick", %{
+        time: current_game_time,
+        width: width,
+        red: socket.assigns.double_points_active
+      })
 
     {:noreply, new_socket}
   end
@@ -146,14 +164,31 @@ defmodule SchoolWeb.MainLive do
     active_rules = State.get_active_rules()
     rule_descriptions = Logic.descriptions_by_rules(active_rules)
     reversed_rules = State.get_reversed_rules()
+    double_points_active = State.get_double_points_active()
 
     new_socket =
       socket
       |> assign(:rule_descriptions, rule_descriptions)
       |> assign(:active_rules, active_rules)
       |> assign(:reversed_rules, reversed_rules)
+      |> assign(:double_points_active, double_points_active)
 
     {:noreply, new_socket}
+  end
+
+  @impl true
+  def handle_info({:double_points_active, expires_at}, socket) do
+    current_game_time = socket.assigns[:current_game_time] || 0
+    remaining = max(expires_at - current_game_time, 0)
+
+    Process.send_after(self(), :double_points_expired, remaining * 1_000)
+
+    {:noreply, assign(socket, :double_points_active, true)}
+  end
+
+  @impl true
+  def handle_info(:double_points_expired, socket) do
+    {:noreply, assign(socket, :double_points_active, false)}
   end
 
   def handle_info({:update_player_list, updated_player_list}, socket) do

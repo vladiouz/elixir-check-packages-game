@@ -23,7 +23,8 @@ defmodule School.State do
             players: [],
             current_game_time: 0,
             boss_pid: nil,
-            reversed_rules: false
+            reversed_rules: false,
+            double_points_until: nil
 
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, %__MODULE__{}, name: __MODULE__)
@@ -54,6 +55,10 @@ defmodule School.State do
     GenServer.call(__MODULE__, :get_reversed_rules)
   end
 
+  def get_double_points_active do
+    GenServer.call(__MODULE__, :get_double_points_active)
+  end
+
   def update_player_score(pid, package, expected) do
     GenServer.call(__MODULE__, {:update_player_score, pid, package, expected})
   end
@@ -64,6 +69,10 @@ defmodule School.State do
 
   def toggle_reversed_rules(pid) do
     GenServer.call(__MODULE__, {:toggle_reversed_rules, pid})
+  end
+
+  def activate_double_points(pid) do
+    GenServer.call(__MODULE__, {:activate_double_points, pid})
   end
 
   @impl true
@@ -125,6 +134,31 @@ defmodule School.State do
   end
 
   @impl true
+  def handle_call({:activate_double_points, pid}, _from, state) do
+    cond do
+      state.game_state != :in_progress ->
+        {:reply, {:error, :game_not_in_progress}, state}
+
+      state.boss_pid != pid ->
+        {:reply, {:error, :not_boss}, state}
+
+      true ->
+        expires_at = state.current_game_time + 30
+        new_state = Map.put(state, :double_points_until, expires_at)
+
+        Phoenix.PubSub.broadcast(
+          School.PubSub,
+          "game_room",
+          {:double_points_active, expires_at}
+        )
+
+        Process.send_after(self(), :clear_double_points, 30_000)
+
+        {:reply, {:ok, expires_at}, new_state}
+    end
+  end
+
+  @impl true
   def handle_call(:get_active_rules, _from, state) do
     {:reply, state.active_rules, state}
   end
@@ -132,6 +166,11 @@ defmodule School.State do
   @impl true
   def handle_call(:get_reversed_rules, _from, state) do
     {:reply, state.reversed_rules, state}
+  end
+
+  @impl true
+  def handle_call(:get_double_points_active, _from, state) do
+    {:reply, state.double_points_until != nil, state}
   end
 
   @impl true
@@ -149,8 +188,8 @@ defmodule School.State do
 
     score_delta =
       if decision == :correct,
-        do: 1,
-        else: -1
+        do: current_score_delta(state),
+        else: -current_score_delta(state)
 
     new_score = max(player.score + score_delta, 0)
 
@@ -222,6 +261,14 @@ defmodule School.State do
         state
       end
 
+    state_with_double_points =
+      if state_with_new_rule.double_points_until &&
+           current_game_time >= state_with_new_rule.double_points_until do
+        Map.put(state_with_new_rule, :double_points_until, nil)
+      else
+        state_with_new_rule
+      end
+
     if current_game_time > @max_game_time_seconds do
       Phoenix.PubSub.broadcast(
         School.PubSub,
@@ -231,9 +278,14 @@ defmodule School.State do
     end
 
     new_state =
-      Map.put(state_with_new_rule, :current_game_time, current_game_time + 1)
+      Map.put(state_with_double_points, :current_game_time, current_game_time + 1)
 
     {:noreply, new_state}
+  end
+
+  @impl true
+  def handle_info(:clear_double_points, state) do
+    {:noreply, Map.put(state, :double_points_until, nil)}
   end
 
   # handle killed PID
@@ -258,6 +310,10 @@ defmodule School.State do
 
   def max_game_time do
     @max_game_time_seconds
+  end
+
+  def double_points_active?(state) do
+    state.double_points_until != nil
   end
 
   defp maybe_activate_random_rule(state) do
@@ -326,5 +382,9 @@ defmodule School.State do
     @available_rules
     |> Enum.shuffle()
     |> Enum.take(length)
+  end
+
+  defp current_score_delta(state) do
+    if state.double_points_until, do: 2, else: 1
   end
 end
